@@ -4,11 +4,12 @@ import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 interface Props {
   url: string;
+  htmlContent?: string;
   title?: string;
   onClose: () => void;
 }
 
-const DraggableResizableWindow = ({ url, title = "Live Web Resource", onClose }: Props) => {
+const DraggableResizableWindow = ({ url, htmlContent,title = "Live Web Resource", onClose }: Props) => {
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [isDragging, setIsDragging] = useState(false);
@@ -130,6 +131,7 @@ const DraggableResizableWindow = ({ url, title = "Live Web Resource", onClose }:
       <div className="flex-1 bg-slate-50 relative">
         <iframe
           src={url}
+          srcDoc={htmlContent} 
           className="w-full h-full border-none"
           title={title}
           sandbox="allow-scripts allow-same-origin"

@@ -81,7 +81,7 @@ const SourcesDropdown = ({ sources }: { sources: Source[] }) => {
                 title={sourceName}
               >
                 {getSourceIcon(category)}
-                <span className="font-medium text-slate-700 truncate max-w-[250px] min-w-0">
+                <span className="font-medium text-slate-700 truncate max-w-62.5 min-w-0">
                   {sourceName}
                 </span>
               </div>
@@ -95,8 +95,9 @@ const SourcesDropdown = ({ sources }: { sources: Source[] }) => {
 
 const MessageFeed = () => {
   const { messages, files } = useStore();
-  const [activeOwst, setActiveOwst] = useState<{ url: string; title: string } | null>(null);
+  const [activeOwst, setActiveOwst] = useState<{ url?: string; html?: string; title: string } | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
+  
   // const [showScrollBtn, setShowScrollBtn] = useState(false);
 
 
@@ -138,6 +139,26 @@ const MessageFeed = () => {
 
   const renderMessageContent = (msg: Message, index: number) => {
     // Handle explicit renderOwst object
+   if (msg.html_response) {
+    return (
+      <div className="space-y-3">
+        {msg.content && (
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {msg.content}
+          </ReactMarkdown>
+        )}
+        <button
+          onClick={() => setActiveOwst({ html: msg.html_response!, title: 'Live Web Resource' })}
+          className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+        >
+          <ExternalLink size={14} />
+          Open Live Webview
+        </button>
+      </div>
+    );
+  }
+
+    // 2. Handle explicit renderOwst object (Legacy/Fallback)
     if (msg.renderOwst) {
       return (
         <div className="space-y-3">
@@ -155,17 +176,15 @@ const MessageFeed = () => {
       );
     }
 
-    // Handle backend macro string
+    // 3. Handle backend macro string (Legacy/Fallback)
     const match = msg.content.match(OWST_REGEX);
     if (match) {
       const cleanText = msg.content.replace(OWST_REGEX, '').trim();
-
       const precedingUserMsg = messages.slice(0, index).reverse().find(m => m.role === 'user');
       const userQuery = precedingUserMsg ? precedingUserMsg.content : '';
       const owstFile = files.find(f => f.category === 'web_page' && f.base_url);
-
-      let iframeUrl = match[1];
-
+      
+      let iframeUrl = match[1]; 
       if (owstFile && userQuery) {
         const params = new URLSearchParams({
           link: owstFile.base_url!,
@@ -193,7 +212,7 @@ const MessageFeed = () => {
       );
     }
 
-    // Standard Markdown Rendering
+    // 4. Standard Markdown Rendering
     return (
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {msg.content || (msg.role === 'assistant' ? '...' : '')}
@@ -203,7 +222,7 @@ const MessageFeed = () => {
 
   return (
     <>
-      <div ref={feedRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50">
+      <div ref={feedRef} data-orca-feed="true" onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -272,7 +291,8 @@ const MessageFeed = () => {
       )} */}
       {activeOwst && (
         <DraggableResizableWindow
-          url={activeOwst.url}
+          url={activeOwst.url||''}
+          htmlContent={activeOwst.html} 
           title={activeOwst.title}
           onClose={() => setActiveOwst(null)}
         />

@@ -4,15 +4,15 @@ import { useStore } from '../store/useStore';
 import { Send, Plus, Loader2, AlertCircle, ArrowDown } from 'lucide-react';
 import KnowledgeBaseModal from './KnowledgeBaseModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
 const ChatConsole = () => {
   const [input, setInput] = useState('');
   const [showScopingModal, setShowScopingModal] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  
-  const { 
-    user, messages, files, addMessage, updateMessage, updateMessageSources, setStreaming, isStreaming, activeContextFilters 
+
+  const {
+    user, messages, files, addMessage, updateMessage, updateMessageSources, updateMessageHtmlResponse, setStreaming, isStreaming, activeContextFilters
   } = useStore();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -26,7 +26,7 @@ const ChatConsole = () => {
       role: 'user' as const,
       content: input.trim(),
     };
-    
+
     const assistantPlaceholder = {
       id: `assistant_${Date.now()}`,
       role: 'assistant' as const,
@@ -76,40 +76,67 @@ const ChatConsole = () => {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') continue;
-            
-            try {
-              const parsed = JSON.parse(jsonStr);
-              
-              // 1. Handle Text Chunks
-              if (parsed.content || parsed.token) {
-                const chunk = parsed.content || parsed.token || '';
-                accumulatedContent += chunk;
-                updateMessage(assistantPlaceholder.id, accumulatedContent);
-              }
-              
-              // 2. Handle Sources Payload
-              if (parsed.sources && Array.isArray(parsed.sources)) {
-                const normalizedSources = parsed.sources.map((s: any) => {
-                  // If backend sends a raw string like "file.pdf", convert it to an object
-                  if (typeof s === 'string') {
-                    let category = 'pdf_standard';
-                    if (s.endsWith('.csv')) category = 'csv';
-                    else if (s.endsWith('.json')) category = 'json';
-                    else if (s.startsWith('http')) category = 'web_page';
-                    
-                    return { source: s, category };
-                  }
-                  // If it's already an object, pass it through
-                  return s;
-                });
-                updateMessageSources(assistantPlaceholder.id, normalizedSources);
-              }
-            } catch (err) {
-              // Ignore JSON parse errors from fragmented packets
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+
+          // Extract JSON string whether it's SSE formatted or raw JSON
+          let jsonStr = trimmedLine;
+          if (trimmedLine.startsWith('data: ')) {
+            jsonStr = trimmedLine.slice(6).trim();
+          } else if (trimmedLine.startsWith('data:')) {
+            jsonStr = trimmedLine.slice(5).trim();
+          }
+
+          if (jsonStr === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+
+            // 1. Handle Standard Text Chunks
+            if (parsed.content || parsed.token) {
+              const chunk = parsed.content || parsed.token || '';
+              accumulatedContent += chunk;
+              updateMessage(assistantPlaceholder.id, accumulatedContent);
             }
+
+            // 2. Handle Direct HTML Response Payload (OWST)
+            // Checks for the explicit 'owst_html' type flag OR the presence of a response object
+            if (parsed.type === 'owst_html' || parsed.response) {
+              let htmlContent = '';
+              
+              if (typeof parsed.response === 'string') {
+                htmlContent = parsed.response;
+              } else if (typeof parsed.response === 'object' && parsed.response !== null) {
+                htmlContent = parsed.response.body || parsed.response.content || '';
+              }
+
+              if (htmlContent) {
+                console.log('[OWST] HTML payload intercepted, length:', htmlContent.length);
+                
+                if (typeof updateMessageHtmlResponse === 'function') {
+                  updateMessageHtmlResponse(assistantPlaceholder.id, htmlContent);
+                } else {
+                  console.error('[OWST] FAILED: updateMessageHtmlResponse is NOT defined in useStore.ts!');
+                }
+              }
+            }
+
+            // 3. Handle Sources Payload
+            if (parsed.sources && Array.isArray(parsed.sources)) {
+              const normalizedSources = parsed.sources.map((s: any) => {
+                if (typeof s === 'string') {
+                  let category = 'pdf_standard';
+                  if (s.endsWith('.csv')) category = 'csv';
+                  else if (s.endsWith('.json')) category = 'json';
+                  else if (s.startsWith('http')) category = 'web_page';
+                  return { source: s, category };
+                }
+                return s;
+              });
+              updateMessageSources(assistantPlaceholder.id, normalizedSources);
+            }
+          } catch (err) {
+            // Ignore JSON parse errors from fragmented TCP packets or non-JSON SSE comments
           }
         }
       }
@@ -141,7 +168,7 @@ const ChatConsole = () => {
 
   return (
     <div className="relative w-full max-w-4xl mx-auto px-4 pb-6 pt-4 bg-slate-50 border-t border-slate-200">
-      
+
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
@@ -190,7 +217,7 @@ const ChatConsole = () => {
           {isStreaming ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
         </button>
       </form>
-      
+
       {activeContextFilters.length > 0 && (
         <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1 px-2">
           <AlertCircle size={14} />

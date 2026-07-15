@@ -8,6 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import SplashScreen from './pages/SplashScreen';
 import Authentication from './pages/Authentication';
 import Workspace from './pages/Workspace';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import orcaText from './assets/text.lottie'
 
 const App = () => {
   const { isAuthReady } = useAuthListener();
@@ -16,8 +18,13 @@ const App = () => {
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-        <p className="text-slate-500 text-sm font-medium tracking-wide">Initializing Secure Workspace...</p>
+        <DotLottieReact
+            src={orcaText}
+            autoplay
+            loop={false}
+            speed={1.0}
+            className="w-full h-full"
+          />
       </div>
     );
   }

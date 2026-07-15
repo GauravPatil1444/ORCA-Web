@@ -21,6 +21,7 @@ export interface Message {
     target_url: string;
     classes_to_remove: string[];
   };
+  html_response?: string; 
 }
 
 export interface FileItem {
@@ -67,6 +68,8 @@ interface AppState {
   setChatHistory: (history: ChatHistoryItem[]) => void;
   setCurrentChatId: (id: string | null) => void;
   setMessages: (messages: Message[]) => void;
+  updateMessageOwst: (id: string, renderOwst: { target_url: string; classes_to_remove: string[] }) => void;
+  updateMessageHtmlResponse: (id: string, html: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -97,4 +100,10 @@ export const useStore = create<AppState>((set) => ({
   setChatHistory: (history) => set({ chatHistory: history }),
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setMessages: (messages) => set({ messages }),
+  updateMessageOwst: (id, renderOwst) => set((state) => ({
+    messages: state.messages.map(m => m.id === id ? { ...m, renderOwst } : m)
+  })),
+  updateMessageHtmlResponse: (id:any, html:any) => set((state) => ({
+    messages: state.messages.map(m => m.id === id ? { ...m, html_response: html } : m)
+  })),
 }));
