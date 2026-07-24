@@ -47,83 +47,51 @@ const ChatConsole = () => {
         }),
       });
 
-      if (!response.body) throw new Error('ReadableStream not supported');
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let accumulatedContent = '';
-      let hasTriggeredOwst = false;
+      // Standard JSON parsing (No more SSE stream reading)
+      const data = await response.json();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // 1. Handle Text Content
+      let textContent = data.response || data.content || '';
+      
+      // Fallback: Check if macro is accidentally embedded in the raw text string
+      const textMatch = textContent.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
+      if (textMatch) {
+        updateMessageOwstUrl(assistantPlaceholder.id, textMatch[1]);
+        textContent = textContent.replace(/RENDER_OWST:\s*https?:\/\/[^\s>]+>?/, '').trim();
+      }
+      
+      updateMessage(assistantPlaceholder.id, textContent);
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (!trimmedLine) continue;
-
-          let jsonStr = trimmedLine;
-          if (trimmedLine.startsWith('data: ')) jsonStr = trimmedLine.slice(6).trim();
-          else if (trimmedLine.startsWith('data:')) jsonStr = trimmedLine.slice(5).trim();
-
-          if (jsonStr === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-
-            // 1. Handle Text Chunks & Fallback Macro Interception
-            if (parsed.content || parsed.token) {
-              const chunk = parsed.content || parsed.token || '';
-              accumulatedContent += chunk;
-              
-              // Fallback: Check if macro is embedded in raw text
-              const textMatch = accumulatedContent.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
-              if (textMatch && !hasTriggeredOwst) {
-                hasTriggeredOwst = true;
-                updateMessageOwstUrl(assistantPlaceholder.id, textMatch[1]);
-                accumulatedContent = accumulatedContent.replace(/RENDER_OWST:\s*https?:\/\/[^\s>]+>?/, '').trim();
-              }
-              
-              updateMessage(assistantPlaceholder.id, accumulatedContent);
-            }
-
-            //  2. Handle Explicit "macro" Key from Backend (Triggers Iframe Button)
-            if (parsed.macro && typeof parsed.macro === 'string' && !hasTriggeredOwst) {
-              const macroMatch = parsed.macro.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
-              if (macroMatch) {
-                hasTriggeredOwst = true;
-                updateMessageOwstUrl(assistantPlaceholder.id, macroMatch[1]);
-              }
-            }
-
-            //  3. Handle Sources Payload (Automatically catches the URL sent by backend)
-            if (parsed.sources && Array.isArray(parsed.sources)) {
-              const normalizedSources = parsed.sources.map((s: any) => {
-                if (typeof s === 'string') {
-                  let category = 'pdf_standard';
-                  // Identify URLs sent by the OWST tool as web_pages
-                  if (s.startsWith('http')) category = 'web_page';
-                  else if (s.endsWith('.csv')) category = 'csv';
-                  else if (s.endsWith('.json')) category = 'json';
-                  
-                  return { source: s, category };
-                }
-                return s;
-              });
-              updateMessageSources(assistantPlaceholder.id, normalizedSources);
-            }
-          } catch (err) {
-            // Ignore JSON parse errors from fragmented TCP packets
-          }
+      // 2. Handle Explicit "macro" Key (Triggers the Open Live Webview Button)
+      if (data.macro && typeof data.macro === 'string') {
+        const macroMatch = data.macro.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
+        if (macroMatch) {
+          updateMessageOwstUrl(assistantPlaceholder.id, macroMatch[1]);
         }
       }
+
+      // 3. Handle Sources Payload (Populates the Citations Dropdown)
+      if (data.sources && Array.isArray(data.sources)) {
+        const normalizedSources = data.sources.map((s: any) => {
+          if (typeof s === 'string') {
+            let category = 'pdf_standard';
+            if (s.startsWith('http')) category = 'web_page';
+            else if (s.endsWith('.csv')) category = 'csv';
+            else if (s.endsWith('.json')) category = 'json';
+            return { source: s, category };
+          }
+          return s;
+        });
+        updateMessageSources(assistantPlaceholder.id, normalizedSources);
+      }
+
     } catch (error) {
-      updateMessage(assistantPlaceholder.id, '⚠️ Error connecting to the agent stream. Please check your backend connection.');
+      console.error("Chat request failed:", error);
+      updateMessage(assistantPlaceholder.id, '⚠️ Error connecting to the agent. Please check your backend connection.');
     } finally {
       setStreaming(false);
     }
@@ -148,9 +116,9 @@ const ChatConsole = () => {
   }, [input]);
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-4 pb-6 pt-4 bg-slate-50 border-t border-slate-200">
+    <div className="relative w-full max-w-4xl mx-auto px-4 pb-6 pt-2 bg-slate-50 border-slate-200">
       {showScrollBtn && (
-        <button onClick={scrollToBottom} className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 bg-white border border-slate-200 shadow-lg rounded-full p-2.5 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:shadow-xl transition-all duration-200" aria-label="Scroll to bottom">
+        <button onClick={scrollToBottom} className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 bg-white/50 border border-slate-200 shadow-lg rounded-full p-2.5 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:shadow-xl transition-all duration-200" aria-label="Scroll to bottom">
           <ArrowDown size={20} />
         </button>
       )}

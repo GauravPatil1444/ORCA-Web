@@ -38,6 +38,7 @@ export interface ChatHistoryItem {
   id: string;
   title: string;
   createdAt: any;
+  pinned?: boolean; 
 }
 
 interface AppState {
