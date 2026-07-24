@@ -1,9 +1,7 @@
 // src/store/useStore.ts
 import { create } from 'zustand';
 
-// src/store/useStore.ts (Update the Source interface)
 export interface Source {
-  sources?: string;
   source?: string;
   file_name?: string;
   name?: string;
@@ -17,11 +15,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   sources?: Source[];
-  renderOwst?: {
-    target_url: string;
-    classes_to_remove: string[];
-  };
-  html_response?: string; 
+  owst_url?: string; // Simple raw URL
 }
 
 export interface FileItem {
@@ -37,7 +31,7 @@ export interface User {
   uid: string;
   name: string;
   email: string;
-  profile: any | undefined;
+  profile?: string|undefined; 
 }
 
 export interface ChatHistoryItem {
@@ -61,15 +55,13 @@ interface AppState {
   addMessage: (message: Message) => void;
   updateMessage: (id: string, content: string) => void;
   updateMessageSources: (id: string, sources: Source[]) => void;
-  appendToMessage: (id: string, chunk: string) => void;
+  updateMessageOwstUrl: (id: string, url: string) => void;
   setStreaming: (streaming: boolean) => void;
   setActiveContextFilters: (filters: string[]) => void;
   clearChat: () => void;
   setChatHistory: (history: ChatHistoryItem[]) => void;
   setCurrentChatId: (id: string | null) => void;
   setMessages: (messages: Message[]) => void;
-  updateMessageOwst: (id: string, renderOwst: { target_url: string; classes_to_remove: string[] }) => void;
-  updateMessageHtmlResponse: (id: string, html: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -91,8 +83,8 @@ export const useStore = create<AppState>((set) => ({
   updateMessageSources: (id, sources) => set((state) => ({
     messages: state.messages.map(m => m.id === id ? { ...m, sources } : m)
   })),
-  appendToMessage: (id, chunk) => set((state) => ({
-    messages: state.messages.map(m => m.id === id ? { ...m, content: m.content + chunk } : m)
+  updateMessageOwstUrl: (id, url) => set((state) => ({
+    messages: state.messages.map(m => m.id === id ? { ...m, owst_url: url } : m)
   })),
   setStreaming: (streaming) => set({ isStreaming: streaming }),
   setActiveContextFilters: (filters) => set({ activeContextFilters: filters }),
@@ -100,10 +92,4 @@ export const useStore = create<AppState>((set) => ({
   setChatHistory: (history) => set({ chatHistory: history }),
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setMessages: (messages) => set({ messages }),
-  updateMessageOwst: (id, renderOwst) => set((state) => ({
-    messages: state.messages.map(m => m.id === id ? { ...m, renderOwst } : m)
-  })),
-  updateMessageHtmlResponse: (id:any, html:any) => set((state) => ({
-    messages: state.messages.map(m => m.id === id ? { ...m, html_response: html } : m)
-  })),
 }));
