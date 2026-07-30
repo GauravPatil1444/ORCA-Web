@@ -1,6 +1,8 @@
 /* src/index.css */
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans;
@@ -15,6 +17,9 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+    @apply bg-slate-400 rounded-full hover:bg-slate-500 transition-colors;
   }
+}
+button{
+  cursor: pointer;
 }

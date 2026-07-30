@@ -3,7 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthListener } from './hooks/useAuthListener';
 import ProtectedRoute from './components/ProtectedRoute';
-
+import { useTheme } from './hooks/useTheme';
 // Pages
 import SplashScreen from './pages/SplashScreen';
 import Authentication from './pages/Authentication';
@@ -13,6 +13,7 @@ import orcaText from './assets/text.lottie'
 
 const App = () => {
   const { isAuthReady } = useAuthListener();
+  useTheme(); 
 
   // Global initialization loader while Firebase resolves the auth state
   if (!isAuthReady) {

@@ -10,9 +10,9 @@ const ChatConsole = () => {
   const [input, setInput] = useState('');
   const [showScopingModal, setShowScopingModal] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  
-  const { 
-    user, messages, files, addMessage, updateMessage, updateMessageSources, updateMessageOwstUrl, setStreaming, isStreaming, activeContextFilters 
+
+  const {
+    user, messages, files, addMessage, updateMessage, updateMessageSources, updateMessageOwstUrl, setStreaming, isStreaming, activeContextFilters, selectedModel
   } = useStore();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -41,6 +41,7 @@ const ChatConsole = () => {
         body: JSON.stringify({
           session_id: user.uid,
           user_id: user.uid,
+          model: selectedModel,
           query: userMessage.content,
           scope_filters: activeContextFilters.length > 0 ? activeContextFilters : undefined,
           owst_context: owstContext.length > 0 ? owstContext : undefined,
@@ -51,22 +52,18 @@ const ChatConsole = () => {
         throw new Error(`Server responded with status ${response.status}`);
       }
 
-      // Standard JSON parsing (No more SSE stream reading)
       const data = await response.json();
 
-      // 1. Handle Text Content
       let textContent = data.response || data.content || '';
-      
-      // Fallback: Check if macro is accidentally embedded in the raw text string
+
       const textMatch = textContent.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
       if (textMatch) {
         updateMessageOwstUrl(assistantPlaceholder.id, textMatch[1]);
         textContent = textContent.replace(/RENDER_OWST:\s*https?:\/\/[^\s>]+>?/, '').trim();
       }
-      
+
       updateMessage(assistantPlaceholder.id, textContent);
 
-      // 2. Handle Explicit "macro" Key (Triggers the Open Live Webview Button)
       if (data.macro && typeof data.macro === 'string') {
         const macroMatch = data.macro.match(/RENDER_OWST:\s*(https?:\/\/[^\s>]+)/);
         if (macroMatch) {
@@ -74,7 +71,6 @@ const ChatConsole = () => {
         }
       }
 
-      // 3. Handle Sources Payload (Populates the Citations Dropdown)
       if (data.sources && Array.isArray(data.sources)) {
         const normalizedSources = data.sources.map((s: any) => {
           if (typeof s === 'string') {
@@ -88,7 +84,6 @@ const ChatConsole = () => {
         });
         updateMessageSources(assistantPlaceholder.id, normalizedSources);
       }
-
     } catch (error) {
       console.error("Chat request failed:", error);
       updateMessage(assistantPlaceholder.id, '⚠️ Error connecting to the agent. Please check your backend connection.');
@@ -116,17 +111,38 @@ const ChatConsole = () => {
   }, [input]);
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-4 pb-6 pt-2 bg-slate-50 border-slate-200">
+    /*Fully transparent wrapper — no background, no border */
+    <div className="relative w-full max-w-3xl mx-auto px-4 pb-4 pt-2">
       {showScrollBtn && (
-        <button onClick={scrollToBottom} className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 bg-white/50 border border-slate-200 shadow-lg rounded-full p-2.5 text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:shadow-xl transition-all duration-200" aria-label="Scroll to bottom">
+        <button
+          onClick={scrollToBottom}
+          className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-600/60 shadow-lg rounded-full p-2.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+          aria-label="Scroll to bottom"
+        >
           <ArrowDown size={20} />
         </button>
       )}
 
       {showScopingModal && <KnowledgeBaseModal onClose={() => setShowScopingModal(false)} />}
 
-      <form onSubmit={handleSubmit} className="relative flex items-end gap-2 bg-white border border-slate-300 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all p-2">
-        <button type="button" onClick={() => setShowScopingModal(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors mb-0.5" title="Knowledge Base Context">
+      {/*Floating, lifted glass card */}
+      <form
+        onSubmit={handleSubmit}
+        className="relative flex items-end gap-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-slate-200/90 dark:border-slate-600/50 rounded-[1.75rem] p-2
+          shadow-[0_10px_36px_-10px_rgba(15,23,42,0.22),0_2px_8px_-2px_rgba(15,23,42,0.08)]
+          dark:shadow-[0_10px_36px_-10px_rgba(0,0,0,0.65),0_2px_8px_-2px_rgba(0,0,0,0.4)]
+          hover:-translate-y-0.5 focus-within:-translate-y-0.5
+          focus-within:border-blue-400/70 dark:focus-within:border-blue-500/50
+          focus-within:shadow-[0_18px_50px_-12px_rgba(37,99,235,0.30),0_4px_12px_-2px_rgba(15,23,42,0.10)]
+          dark:focus-within:shadow-[0_18px_50px_-12px_rgba(37,99,235,0.35),0_4px_12px_-2px_rgba(0,0,0,0.5)]
+          transition-all duration-300 ease-out"
+      >
+        <button
+          type="button"
+          onClick={() => setShowScopingModal(true)}
+          className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all duration-200 mb-0.5 hover:scale-105 active:scale-95"
+          title="Knowledge Base Context"
+        >
           <Plus size={20} />
         </button>
 
@@ -135,21 +151,27 @@ const ChatConsole = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-          placeholder="Ask ORCA"
-          className="flex-1 resize-none border-none outline-none text-slate-800 placeholder-slate-400 py-1 px-1 text-base leading-relaxed"
+          placeholder={isStreaming ?"Thinking...":"Ask ORCA"}
+          className="flex-1 resize-none border-none outline-none bg-transparent text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 py-1.5 px-1 text-base leading-relaxed"
           rows={1}
           disabled={isStreaming}
         />
 
-        <button type="submit" disabled={!input.trim() || isStreaming} className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors mb-0.5 shadow-sm">
+        <button
+          type="submit"
+          disabled={!input.trim() || isStreaming}
+          className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-600/25 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/35 disabled:bg-transparent dark:disabled:bg-transparent disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200 mb-0.5 hover:scale-105 active:scale-95"
+        >
           {isStreaming ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
         </button>
       </form>
-      
+
       {activeContextFilters.length > 0 && (
-        <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1 px-2">
-          <AlertCircle size={14} />
-          Manual Scoping Active: Filtering across {activeContextFilters.length} selected source(s).
+        <div className="mt-2.5 flex justify-center">
+          <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-900/40 backdrop-blur-md border border-blue-100/80 dark:border-blue-800/50 font-medium flex items-center gap-1.5 px-3 py-1 rounded-full shadow-sm">
+            <AlertCircle size={13} />
+            Manual Scoping Active: Filtering across {activeContextFilters.length} selected source(s).
+          </div>
         </div>
       )}
     </div>

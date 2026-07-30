@@ -1,6 +1,8 @@
 // src/store/useStore.ts
 import { create } from 'zustand';
 
+export type Theme = 'light' | 'dark' | 'auto';
+
 export interface Source {
   source?: string;
   file_name?: string;
@@ -21,7 +23,7 @@ export interface Message {
 export interface FileItem {
   id: string;
   name: string;
-  category: 'pdf_standard' | 'pdf_regex' | 'csv' | 'json' | 'web_page';
+  category: 'pdf_standard' | 'pdf_regex' | 'csv' | 'json' | 'web_page'| 'image';
   uploaded_at: string;
   base_url?: string;
   excluded_css_classes?: string[];
@@ -49,6 +51,9 @@ interface AppState {
   activeContextFilters: string[]; 
   chatHistory: ChatHistoryItem[];
   currentChatId: string | null;
+  theme: Theme;
+  selectedModel: string;
+  
   
   setUser: (user: User | null) => void;
   setFiles: (files: FileItem[]) => void;
@@ -63,6 +68,8 @@ interface AppState {
   setChatHistory: (history: ChatHistoryItem[]) => void;
   setCurrentChatId: (id: string | null) => void;
   setMessages: (messages: Message[]) => void;
+  setTheme: (theme: Theme) => void;
+  setSelectedModel: (model: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -73,6 +80,7 @@ export const useStore = create<AppState>((set) => ({
   activeContextFilters: [],
   chatHistory: [],
   currentChatId: null,
+  selectedModel: 'llama-3.3-70b-versatile',
   
   setUser: (user) => set({ user }),
   setFiles: (files) => set({ files }),
@@ -93,4 +101,13 @@ export const useStore = create<AppState>((set) => ({
   setChatHistory: (history) => set({ chatHistory: history }),
   setCurrentChatId: (id) => set({ currentChatId: id }),
   setMessages: (messages) => set({ messages }),
+  theme: (localStorage.getItem('orca-theme') as Theme) || 'auto',
+  setTheme: (theme) => {
+    localStorage.setItem('orca-theme', theme);
+    set({ theme });
+  },
+  setSelectedModel: (model) => set({ selectedModel: model }),
 }));
+
+
+
