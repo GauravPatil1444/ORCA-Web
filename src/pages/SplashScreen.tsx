@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import orcaLogo from "../assets/orca.lottie";
+// import orcaLogo from "../assets/orca.lottie";
 import orcaText from "../assets/text.lottie";
 
 const SplashScreen = () => {
@@ -56,7 +56,7 @@ const SplashScreen = () => {
 
       {/* Secondary Text Animation (Fades in sequentially) */}
       <div 
-        className={`mt-8 w-72 h-24 transition-all duration-1000 ease-out z-10 ${
+        className={`mt-8 w-max h-max transition-all duration-1000 ease-out z-10 ${
           showTextAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
       >

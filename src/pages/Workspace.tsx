@@ -278,23 +278,40 @@ const Workspace = () => {
   }, []);
 
   const saveCurrentChat = async () => {
-    const { messages, currentChatId, user } = useStore.getState();
-    if (messages.length === 0 || !user) return null;
-    try {
-      const firstUserMsg = messages.find(m => m.role === 'user');
-      const title = firstUserMsg ? firstUserMsg.content.substring(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '') : 'Untitled Chat';
-      if (currentChatId) {
-        await setDoc(doc(db, "users", user.uid, "UserData", currentChatId), { title, messages, updatedAt: serverTimestamp() }, { merge: true });
-        return currentChatId;
-      } else {
-        const docRef = await addDoc(collection(db, "users", user.uid, "UserData"), { title, messages, createdAt: serverTimestamp() });
-        return docRef.id;
-      }
-    } catch (error) {
-      console.error("Error saving chat:", error);
-      return null;
+  const { messages, currentChatId, user, setCurrentChatId } = useStore.getState();
+  if (messages.length === 0 || !user) return null;
+
+  try {
+    if (currentChatId) {
+      // UPDATE — messages + timestamp only. Never write `title` here,
+      // or a manual rename gets flattened back to the auto‑derived string.
+      await setDoc(
+        doc(db, "users", user.uid, "UserData", currentChatId),
+        { messages, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      return currentChatId;
     }
-  };
+
+    // CREATE — derive an initial title exactly once, then pin the id so we
+    // stop minting a fresh duplicate document on every later save.
+    const firstUserMsg = messages.find(m => m.role === 'user');
+    const title = firstUserMsg
+      ? firstUserMsg.content.substring(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '')
+      : 'Untitled Chat';
+
+    const docRef = await addDoc(collection(db, "users", user.uid, "UserData"), {
+      title,
+      messages,
+      createdAt: serverTimestamp(),
+    });
+    setCurrentChatId(docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving chat:", error);
+    return null;
+  }
+};
 
   const handleNewChat = async () => {
     await saveCurrentChat();

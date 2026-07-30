@@ -1,5 +1,19 @@
 // src/store/useStore.ts
 import { create } from 'zustand';
+import { db } from '../../firebaseConfig';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+
+
+function persistPreference(key: string, value: string) {
+  const { user } = useStore.getState();
+  if (!user) return;
+  setDoc(
+    doc(db, 'users', user.uid, 'Settings', 'preferences'),
+    { [key]: value, updatedAt: serverTimestamp() },
+    { merge: true }
+  ).catch((err) => console.error('[prefs] sync failed:', err));
+}
 
 export type Theme = 'light' | 'dark' | 'auto';
 
@@ -70,6 +84,7 @@ interface AppState {
   setMessages: (messages: Message[]) => void;
   setTheme: (theme: Theme) => void;
   setSelectedModel: (model: string) => void;
+  applyPreferences: (prefs: { theme?: Theme; selectedModel?: string }) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -103,10 +118,23 @@ export const useStore = create<AppState>((set) => ({
   setMessages: (messages) => set({ messages }),
   theme: (localStorage.getItem('orca-theme') as Theme) || 'auto',
   setTheme: (theme) => {
-    localStorage.setItem('orca-theme', theme);
+    localStorage.setItem('orca-theme', theme);   // instant, pre‑paint cache
     set({ theme });
+    persistPreference('theme', theme);           // durable, cross‑device
   },
-  setSelectedModel: (model) => set({ selectedModel: model }),
+  setSelectedModel: (model) => {
+    set({ selectedModel: model });
+    persistPreference('selectedModel', model);
+  },
+  applyPreferences: (prefs) => {
+    const patch: { theme?: Theme; selectedModel?: string } = {};
+    if (prefs.theme) {
+      localStorage.setItem('orca-theme', prefs.theme);
+      patch.theme = prefs.theme;
+    }
+    if (prefs.selectedModel) patch.selectedModel = prefs.selectedModel;
+    if (patch.theme || patch.selectedModel) set(patch);
+  },
 }));
 
 
