@@ -1,5 +1,5 @@
 // src/components/MessageFeed.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore, type Message, type Source } from '../store/useStore';
 import { Bot, ExternalLink, FileText, Globe, Database, BookOpenText, ChevronRight, ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -7,20 +7,20 @@ import remarkGfm from 'remark-gfm';
 import DraggableResizableWindow from './DraggableResizableWindow';
 
 const markdownComponents = {
-  p: ({ node, ...props }: any) => <p className="mb-3 last:mb-0 leading-relaxed break-words" {...props} />,
-  h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-3 text-slate-900 dark:text-slate-50 break-words" {...props} />,
-  h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mt-5 mb-2 text-slate-900 dark:text-slate-50 break-words" {...props} />,
-  h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold mt-4 mb-2 text-slate-900 dark:text-slate-50 break-words" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-3 space-y-1 break-words" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-3 space-y-1 break-words" {...props} />,
-  li: ({ node, ...props }: any) => <li className="leading-relaxed break-words" {...props} />,
+  p: ({ node, ...props }: any) => <p className="mb-3 last:mb-0 leading-relaxed wrap-break-word" {...props} />,
+  h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-3 text-slate-900 dark:text-slate-50 wrap-break-word" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mt-5 mb-2 text-slate-900 dark:text-slate-50 wrap-break-word" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold mt-4 mb-2 text-slate-900 dark:text-slate-50 wrap-break-word" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-3 space-y-1 wrap-break-word" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-3 space-y-1 wrap-break-word" {...props} />,
+  li: ({ node, ...props }: any) => <li className="leading-relaxed wrap-break-word" {...props} />,
   a: ({ node, ...props }: any) => <a className="text-blue-600 dark:text-blue-400 hover:underline font-medium break-all" target="_blank" rel="noopener noreferrer" {...props} />,
-  blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-600 pl-4 italic text-slate-600 dark:text-slate-300 my-3 break-words" {...props} />,
+  blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-600 pl-4 italic text-slate-600 dark:text-slate-300 my-3 wrap-break-word" {...props} />,
   pre: ({ node, ...props }: any) => <pre className="bg-slate-900 dark:bg-slate-950 text-slate-100 rounded-lg overflow-x-auto my-3 p-4 text-sm font-mono max-w-full" {...props} />,
   code: ({ node, className, children, ...props }: any) => {
     const isInline = !className && !String(children).includes('\n');
     if (isInline) {
-      return <code className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-sm font-mono break-words" {...props}>{children}</code>;
+      return <code className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-sm font-mono wrap-break-word" {...props}>{children}</code>;
     }
     return <code className={`block max-w-full ${className || ''}`} {...props}>{children}</code>;
   },
@@ -62,7 +62,7 @@ const SourcesDropdown = ({ sources }: { sources: Source[] }) => {
             return (
               <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs shadow-sm hover:border-blue-300 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-default" title={sourceName}>
                 {getSourceIcon(category)}
-                <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[250px] min-w-0">{sourceName}</span>
+                <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-62.5 min-w-0">{sourceName}</span>
               </div>
             );
           })}
@@ -139,7 +139,7 @@ const MessageFeed = () => {
           </div>
         )}
 
-        {messages.map((msg, index) => (
+        {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex flex-col min-w-0 ${msg.role === 'user' ? 'items-end max-w-[85%]' : 'items-start max-w-full w-full'}`}>
               <div

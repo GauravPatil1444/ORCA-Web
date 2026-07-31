@@ -11,7 +11,7 @@ import {
   collection, addDoc, serverTimestamp, query, onSnapshot, doc,
   getDoc, setDoc, deleteDoc, updateDoc
 } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import ChatConsole from '../components/ChatConsole';
 import MessageFeed from '../components/MessageFeed';
 import ConfigurationDashboard from '../components/ConfigurationDashboard';
@@ -19,6 +19,7 @@ import ConfirmLogoutModal from '../components/ConfirmLogoutModal';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import orcaText from "../assets/text.lottie";
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import { useAuthListener } from '@/hooks/useAuthListener';
 
 /* ------------------------------------------------------------------ */
 /*  Model registry — `id` is the exact string sent in the payload      */
@@ -36,7 +37,7 @@ const MODELS: ModelDef[] = [
   { id: 'openai/gpt-oss-120b',           provider: 'OpenAI',  name: 'gpt-oss-120b',           tag: 'Powerful',   tone: 'emerald' },
   { id: 'openai/gpt-oss-safeguard-20b',  provider: 'OpenAI',  name: 'gpt-oss-safeguard-20b',  tag: 'Guarded',    tone: 'emerald' },
   { id: 'qwen/qwen3.6-27b',              provider: 'Qwen',    name: 'qwen3.6-27b',            tag: 'Reasoning',  tone: 'sky' },
-  { id: 'minimaxai/minimax-m2.7',        provider: 'MiniMax', name: 'minimax-m2.7',           tag: 'Multimodal', tone: 'fuchsia' },
+  // { id: 'minimaxai/minimax-m2.7',        provider: 'MiniMax', name: 'minimax-m2.7',           tag: 'Multimodal', tone: 'fuchsia' },
   { id: 'llama-3.3-70b-versatile',       provider: 'Meta',    name: 'llama-3.3-70b-versatile', tag: 'Versatile',  tone: 'indigo' },
   { id: 'llama-3.1-8b-instant',          provider: 'Meta',    name: 'llama-3.1-8b-instant',    tag: 'Instant',    tone: 'indigo' },
 ];
@@ -208,6 +209,8 @@ const ModelSelector = () => {
 /*  Workspace                                                          */
 /* ------------------------------------------------------------------ */
 const Workspace = () => {
+  
+  const { isAuthReady } = useAuthListener();
   const user = useStore((state) => state.user);
   const clearChat = useStore((state) => state.clearChat);
   const setMessages = useStore((state) => state.setMessages);
@@ -399,6 +402,9 @@ const Workspace = () => {
     }
   };
 
+  if (!isAuthReady) return null; 
+  if (!user) return <Navigate to="/auth" replace />;
+
   return (
     <div className="h-dvh bg-slate-50 dark:bg-slate-900 flex overflow-hidden transition-colors">
       <ConfirmLogoutModal
@@ -421,16 +427,52 @@ const Workspace = () => {
         />
       )}
       <aside className={`fixed md:relative inset-y-0 left-0 z-50 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col p-4 h-full transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} ${isCollapsed ? 'md:w-18' : 'md:w-64'} w-72`}>
-        <div className="flex items-center justify-between mb-4 px-2 shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden h-8">
-            <DotLottieReact src={orcaText} autoplay loop={false} speed={1.0} className="w-full h-full" />
-          </div>
+                <div
+          className={`flex mb-4 shrink-0 ${
+            isCollapsed && !isMobileMenuOpen
+              ? 'flex-col items-center gap-2.5'
+              : 'items-center justify-between px-2'
+          }`}
+        >
+          {/* Brand — full ORCA wordmark when the rail is open, an "O" monogram when collapsed */}
+          {isCollapsed && !isMobileMenuOpen ? (
+            <div
+              title="ORCA"
+              className="cursor-pointer group relative grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-blue-600 to-cyan-500 shadow-lg shadow-cyan-500/30 ring-1 ring-white/15 transition-transform duration-200 hover:scale-105 active:scale-95"
+            >
+              <span className="font-['Orbitron'] text-lg font-extrabold leading-none text-white">O</span>
+              <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-300 ring-2 ring-white dark:ring-slate-800" />
+              </span>
+            </div>
+          ) : (
+            <div className="group relative flex select-none items-center gap-2.5">
+              {/* live "agent online" pulse */}
+              {/* <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-70" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400" />
+              </span> */}
+
+              {/* the wordmark */}
+              <span className="bg-linear-to-r from-blue-600 via-cyan-500 to-teal-500 bg-clip-text font-['Orbitron'] text-xl font-extrabold tracking-[0.18em] text-transparent transition-[letter-spacing,filter] duration-300 group-hover:tracking-[0.26em] group-hover:drop-shadow-[0_0_14px_rgba(34,211,238,0.45)] dark:from-blue-400 dark:via-cyan-300 dark:to-teal-300">
+                ORCA
+              </span>
+
+              {/* underline that draws in on hover */}
+              <span className="pointer-events-none absolute -bottom-0.5 left-3 h-px w-[calc(100%-0.75rem)] origin-left scale-x-0 rounded-full bg-linear-to-r from-blue-500 via-cyan-400 to-teal-400 transition-transform duration-300 group-hover:scale-x-100" />
+            </div>
+          )}
+
+          {/* Desktop collapse / expand toggle */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden md:flex p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
           >
-            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            {!isCollapsed && <PanelLeftClose size={18} />}
           </button>
+
+          {/* Mobile drawer close */}
           <button
             onClick={() => setIsMobileMenuOpen(false)}
             className="md:hidden p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
@@ -609,7 +651,7 @@ const Workspace = () => {
               className="p-2 -ml-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-500/10 rounded-lg transition-all duration-200 active:scale-95"
               title="Toggle Side Panel"
             >
-              {isCollapsed ? <PanelLeftOpen size={22} /> : <PanelLeft size={22} />}
+              {isCollapsed && <PanelLeftOpen size={22} /> }
             </button>
             {/* <div className="flex items-center overflow-hidden h-8 w-20 sm:w-28">
               <DotLottieReact src={orcaText} autoplay loop={false} speed={1.0} className="w-full h-full" />

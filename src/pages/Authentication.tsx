@@ -1,6 +1,6 @@
 // src/pages/Authentication.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import orcaText from '../assets/text.lottie';
+import { useAuthListener } from '@/hooks/useAuthListener';
 
 /* ------------------------------------------------------------------ */
 /*  Ambient system — graph + grid + glows live in the background now.  */
@@ -135,10 +136,12 @@ const Authentication = () => {
   const navigate = useNavigate();
   const setUser = useStore((state) => state.setUser);
   const googleProvider = new GoogleAuthProvider();
+  const { isAuthReady } = useAuthListener();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate('/workspace');
+      if (!isAuthReady) return null;          // wait for resolution
+      if (user) return <Navigate to="/workspace" replace />;
     });
     return () => unsubscribe();
   }, [navigate]);

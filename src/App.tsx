@@ -1,7 +1,6 @@
 // src/App.tsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthListener } from './hooks/useAuthListener';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { useUserPreferences } from './hooks/useUserPreferences';
@@ -9,28 +8,13 @@ import { useUserPreferences } from './hooks/useUserPreferences';
 import SplashScreen from './pages/SplashScreen';
 import Authentication from './pages/Authentication';
 import Workspace from './pages/Workspace';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import orcaText from './assets/text.lottie'
+
 
 const App = () => {
-  const { isAuthReady } = useAuthListener();
+  
   useTheme(); 
   useUserPreferences();
 
-  // Global initialization loader while Firebase resolves the auth state
-  if (!isAuthReady) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <DotLottieReact
-            src={orcaText}
-            autoplay
-            loop={false}
-            speed={1.0}
-            className="w-full h-full"
-          />
-      </div>
-    );
-  }
 
   return (
     <BrowserRouter>

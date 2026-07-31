@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 import { Send, Plus, Loader2, AlertCircle, ArrowDown } from 'lucide-react';
 import KnowledgeBaseModal from './KnowledgeBaseModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ChatConsole = () => {
   const [input, setInput] = useState('');
@@ -112,11 +112,11 @@ const ChatConsole = () => {
 
   return (
     /*Fully transparent wrapper — no background, no border */
-    <div className="relative w-full max-w-3xl mx-auto px-4 pb-4 pt-2">
+    <div className="relative w-full max-w-3xl mx-auto px-4 pb-2 pt-2">
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
-          className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-600/60 shadow-lg rounded-full p-2.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+          className="absolute -top-10 left-1/2 -translate-x-1/2 z-20 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/80 dark:border-slate-600/60 shadow-lg rounded-full p-2.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
           aria-label="Scroll to bottom"
         >
           <ArrowDown size={20} />
