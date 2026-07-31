@@ -1,58 +1,62 @@
 // src/hooks/useAuthListener.ts
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { collection, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebaseConfig';
-import { useStore, type FileItem } from '../store/useStore';
+import { collection, getDocs } from 'firebase/firestore';
+import { useStore } from '../store/useStore';
 
 export const useAuthListener = () => {
-  const setUser = useStore((state) => state.setUser);
-  const setFiles = useStore((state) => state.setFiles);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const setUser = useStore((s) => s.setUser);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-      if (firebaseUser) {
-        try {
-          const userId = firebaseUser.uid;
-          
-          // 1. Fetch User Details
-          const userDetailsSnap = await getDocs(collection(db, "users", userId, "UserDetails"));
-          let name = "";
-          userDetailsSnap.forEach((doc) => { 
-            const data = doc.data();
-            name = data.name || ""; 
+    // onAuthStateChanged fires ONCE on init with the restored user (or null).
+    // That single fire is the gate — nothing routes until it resolves.
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      try {
+        if (fbUser) {
+          // Fetch display name from Firestore (same logic you already have)
+          const userDetailsSnap = await getDocs(
+            collection(db, 'users', fbUser.uid, 'UserDetails')
+          );
+          let name = '';
+          let profile: string | undefined;
+          userDetailsSnap.forEach((d) => {
+            const data = d.data();
+            name = data.name || '';
+            profile = data.photoURL || data.profile || undefined;
           });
 
-          setUser({ 
-            uid: userId, 
-            name, 
-            email: firebaseUser.email || '' 
+          setUser({
+            uid: fbUser.uid,
+            name: name || fbUser.displayName || 'User',
+            email: fbUser.email || '',
+            profile: profile || fbUser.photoURL || undefined,
           });
-
-          // 2. Fetch User Files (Knowledge Base Registry)
-          const filesSnap = await getDocs(collection(db, "users", userId, "Files"));
-          const userFiles: FileItem[] = filesSnap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as FileItem[];
-          
-          // Hydrate the Zustand store so the KB Modal populates instantly
-          setFiles(userFiles);
-
-        } catch (error) {
-          console.error("Error fetching user profile or files:", error);
+        } else {
           setUser(null);
         }
-      } else {
-        setUser(null);
-        setFiles([]); // Clear files on logout
+      } catch (err) {
+        console.error('[auth] profile fetch failed:', err);
+        // Even if the Firestore read fails, still populate from Firebase Auth
+        if (fbUser) {
+          setUser({
+            uid: fbUser.uid,
+            name: fbUser.displayName || 'User',
+            email: fbUser.email || '',
+            profile: fbUser.photoURL || undefined,
+          });
+        } else {
+          setUser(null);
+        }
+      } finally {
+
+        setIsAuthReady(true);
       }
-      setIsAuthReady(true);
     });
 
     return () => unsubscribe();
-  }, [setUser, setFiles]);
+  }, [setUser]);
 
   return { isAuthReady };
 };

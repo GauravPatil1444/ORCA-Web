@@ -1,14 +1,14 @@
 // src/components/ChatConsole.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Send, Plus, Loader2, AlertCircle, ArrowDown } from 'lucide-react';
+import { Send, Loader2, AlertCircle, ArrowDown } from 'lucide-react';
 import KnowledgeBaseModal from './KnowledgeBaseModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ChatConsole = () => {
   const [input, setInput] = useState('');
-  const [showScopingModal, setShowScopingModal] = useState(false);
+  // const [showScopingModal, setShowScopingModal] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const {
@@ -123,7 +123,6 @@ const ChatConsole = () => {
         </button>
       )}
 
-      {showScopingModal && <KnowledgeBaseModal onClose={() => setShowScopingModal(false)} />}
 
       {/*Floating, lifted glass card */}
       <form
@@ -137,14 +136,7 @@ const ChatConsole = () => {
           dark:focus-within:shadow-[0_18px_50px_-12px_rgba(37,99,235,0.35),0_4px_12px_-2px_rgba(0,0,0,0.5)]
           transition-all duration-300 ease-out"
       >
-        <button
-          type="button"
-          onClick={() => setShowScopingModal(true)}
-          className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all duration-200 mb-0.5 hover:scale-105 active:scale-95"
-          title="Knowledge Base Context"
-        >
-          <Plus size={20} />
-        </button>
+        <KnowledgeBaseModal />
 
         <textarea
           ref={inputRef}

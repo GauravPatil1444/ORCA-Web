@@ -6,6 +6,7 @@
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans;
+    overflow-x: hidden;
   }
   
   /* Custom scrollbar for the chat feed and dashboard */

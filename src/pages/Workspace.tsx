@@ -20,6 +20,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import orcaText from "../assets/text.lottie";
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { useAuthListener } from '@/hooks/useAuthListener';
+import { useFilesListener } from '../hooks/useFilesListener';
 
 /* ------------------------------------------------------------------ */
 /*  Model registry — `id` is the exact string sent in the payload      */
@@ -230,6 +231,7 @@ const Workspace = () => {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const theme = useStore((state) => state.theme);
   const setTheme = useStore((state) => state.setTheme);
+  useFilesListener();
 
   useEffect(() => {
     const handleResize = () => {
@@ -436,16 +438,17 @@ const Workspace = () => {
         >
           {/* Brand — full ORCA wordmark when the rail is open, an "O" monogram when collapsed */}
           {isCollapsed && !isMobileMenuOpen ? (
-            <div
+            <button
               title="ORCA"
-              className="cursor-pointer group relative grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-blue-600 to-cyan-500 shadow-lg shadow-cyan-500/30 ring-1 ring-white/15 transition-transform duration-200 hover:scale-105 active:scale-95"
+              className="group relative grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-blue-600 to-cyan-500 shadow-lg shadow-cyan-500/30 ring-1 ring-white/15 transition-transform duration-200 hover:scale-105 active:scale-95"
+              onClick={()=>window.location.assign('/')}
             >
               <span className="font-['Orbitron'] text-lg font-extrabold leading-none text-white">O</span>
-              <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+              {/* <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-300 ring-2 ring-white dark:ring-slate-800" />
-              </span>
-            </div>
+              </span> */}
+            </button>
           ) : (
             <div className="group relative flex select-none items-center gap-2.5">
               {/* live "agent online" pulse */}
@@ -482,7 +485,7 @@ const Workspace = () => {
         </div>
         <button
           onClick={handleNewChat}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors font-medium border border-blue-100 dark:border-blue-800 shrink-0 ${isCollapsed && !isMobileMenuOpen ? 'md:justify-center' : ''}`}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-transparent text-blue-600 dark:text-blue-300 border border-blue-400/30 dark:border-blue-400/25 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors font-medium shrink-0 ${isCollapsed && !isMobileMenuOpen ? 'md:justify-center' : ''}`}
         >
           <Plus size={20} className="shrink-0" />
           <span className={`whitespace-nowrap ${isCollapsed && !isMobileMenuOpen ? 'md:hidden' : ''}`}>New Chat</span>
@@ -643,7 +646,7 @@ const Workspace = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <header className="h-16 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 shrink-0 z-30 absolute top-0 w-full">
+        <header className={`h-16 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 shrink-0 z-30 absolute top-0 w-full md:w-[95%]`}>
           {/* Left: panel toggle + logo */}
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -651,7 +654,7 @@ const Workspace = () => {
               className="p-2 -ml-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-500/10 rounded-lg transition-all duration-200 active:scale-95"
               title="Toggle Side Panel"
             >
-              {isCollapsed && <PanelLeftOpen size={22} /> }
+              {isCollapsed && <PanelLeftOpen size={22}/> }
             </button>
             {/* <div className="flex items-center overflow-hidden h-8 w-20 sm:w-28">
               <DotLottieReact src={orcaText} autoplay loop={false} speed={1.0} className="w-full h-full" />
@@ -677,7 +680,7 @@ const Workspace = () => {
           {activeTab === 'chat' ? (
             <div className="flex-1 flex flex-col min-h-0 relative">
               <MessageFeed />
-              <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none">
+              <div className="absolute inset-x-0 bottom-2 md:bottom-5 z-20 pointer-events-none">
                 <div className="pointer-events-auto">
                   <ChatConsole />
                 </div>
